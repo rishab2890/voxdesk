@@ -1,0 +1,22 @@
+# Single-VPS mode: run the VoxDesk backend ALONGSIDE Dograh on one server.
+# Dograh's stack owns 80/443 and host ports 8000/5432/6379, so here the API
+# publishes on 8080 (plain HTTP — the Vercel dashboard proxies to it via
+# next.config.ts API_PROXY_TARGET) and the databases stay internal-only.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d --build
+services:
+  api:
+    restart: unless-stopped
+    ports: !override
+      - "8080:8000"
+  worker:
+    restart: unless-stopped
+  postgres:
+    restart: unless-stopped
+    ports: !override []
+  redis:
+    restart: unless-stopped
+    ports: !override []
+  qdrant:
+    restart: unless-stopped
+    ports: !override []
