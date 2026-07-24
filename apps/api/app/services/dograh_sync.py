@@ -64,10 +64,25 @@ async def sync_org(db: AsyncSession, organization_id: str) -> int:
     ).scalars().all()
     agent_by_name = {" ".join(a.name.split()).lower(): a for a in agents}
 
+    workflows = await engine.list_workflows()
+
+    # Mirror each Dograh workflow as a VoxDesk agent so they show on the Agents
+    # page. The workflow graph (prompt, voice, transfer) is owned by Dograh; the
+    # VoxDesk agent is the reference record calls attach to.
+    for wf in workflows:
+        name = str(wf.get("name", "")).strip()
+        key = " ".join(name.split()).lower()
+        if key and key not in agent_by_name:
+            agent = Agent(organization_id=organization_id, name=name,
+                          is_active=str(wf.get("status", "")).lower() == "active")
+            db.add(agent)
+            await db.flush()
+            agent_by_name[key] = agent
+
     already = await _existing_ids(db, organization_id)
     added = 0
 
-    for wf in await engine.list_workflows():
+    for wf in workflows:
         wf_id = wf.get("id") or wf.get("uuid")
         agent = agent_by_name.get(" ".join(str(wf.get("name", "")).split()).lower())
         for run in await engine.list_runs(wf_id):
