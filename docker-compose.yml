@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: voxdesk
-      POSTGRES_PASSWORD: voxdesk
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voxdesk}
       POSTGRES_DB: voxdesk
     ports: ["5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
@@ -25,7 +25,7 @@ services:
     build: ./apps/api
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://voxdesk:voxdesk@postgres:5432/voxdesk
+      DATABASE_URL: postgresql+asyncpg://voxdesk:${POSTGRES_PASSWORD:-voxdesk}@postgres:5432/voxdesk
       REDIS_URL: redis://redis:6379/0
       QDRANT_URL: http://qdrant:6333
     ports: ["8000:8000"]
@@ -39,7 +39,7 @@ services:
     build: ./apps/api
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://voxdesk:voxdesk@postgres:5432/voxdesk
+      DATABASE_URL: postgresql+asyncpg://voxdesk:${POSTGRES_PASSWORD:-voxdesk}@postgres:5432/voxdesk
       REDIS_URL: redis://redis:6379/0
       QDRANT_URL: http://qdrant:6333
     depends_on: [api]

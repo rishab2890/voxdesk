@@ -6,6 +6,8 @@ node_modules/
 .next/
 .env
 .env.local
+.env.secrets
+dev.db
 *.egg-info/
 .pytest_cache/
 storage/
