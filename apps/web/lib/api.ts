@@ -4,7 +4,20 @@ import type {
   IntegrationT, MemberT, OrgT, PageT, TokenT, UserT,
 } from "@voxdesk/shared";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Where the browser sends API calls. Deployed builds always use the
+// same-origin /backend proxy (next.config.ts → VPS), so there is no CORS and
+// no dependency on a NEXT_PUBLIC_API_URL dashboard var. Local dev hits the API
+// directly. Decided at call time so a stale build-time env var can't break it.
+function apiBase(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    }
+    return "/backend";
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+}
 
 export function getToken(): string | null {
   return typeof window === "undefined" ? null : localStorage.getItem("voxdesk_token");
@@ -27,7 +40,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
   if (init.body && typeof init.body === "string") headers["Content-Type"] = "application/json";
 
-  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  const res = await fetch(`${apiBase()}${path}`, { ...init, headers });
   if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
     setToken(null);
     window.location.href = "/login";
@@ -84,7 +97,7 @@ export const api = {
 
   recordingUrl: async (callId: string): Promise<string> => {
     // <audio> can't send the bearer header, so fetch the audio and hand back a blob URL.
-    const res = await fetch(`${BASE}/calls/${callId}/recording`, {
+    const res = await fetch(`${apiBase()}/calls/${callId}/recording`, {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
     if (!res.ok) throw new ApiError(res.status, "Recording unavailable");
