@@ -17,6 +17,8 @@ export default function CallsPage() {
   const [agentId, setAgentId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     api.calls(offset, PAGE_SIZE).then((page) => { setCalls(page.items); setTotal(page.total); }).catch(() => {});
@@ -37,9 +39,31 @@ export default function CallsPage() {
     }
   }
 
+  async function sync() {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const { imported } = await api.syncDograh();
+      setSyncMsg(imported > 0 ? `Imported ${imported} new call${imported === 1 ? "" : "s"} from Dograh.` : "Already up to date.");
+      reload();
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-white">Calls</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-white">Calls</h1>
+        <div className="flex items-center gap-3">
+          {syncMsg && <span className="text-sm text-slate-400">{syncMsg}</span>}
+          <Button variant="ghost" onClick={sync} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync from Dograh"}
+          </Button>
+        </div>
+      </div>
 
       <Card title="Simulate a call (runs the full voice pipeline on placeholder providers)">
         <div className="flex flex-wrap items-end gap-3">

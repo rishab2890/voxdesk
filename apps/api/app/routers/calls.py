@@ -2,13 +2,26 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 
+from app.config import get_settings
 from app.deps import TenantCtx, get_ctx
 from app.models import Agent, Call, Summary, TranscriptTurn
 from app.providers.registry import get_storage
 from app.schemas import CallDetailOut, CallOut, Page, SimulateIn
-from app.services import voice
+from app.services import dograh_sync, voice
 
 router = APIRouter(prefix="/calls", tags=["calls"])
+
+
+@router.post("/sync")
+async def sync_dograh(ctx: TenantCtx = Depends(get_ctx)):
+    """Pull finished calls from the Dograh voice engine into this org."""
+    if get_settings().voice_engine != "dograh":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Voice engine is not set to Dograh")
+    try:
+        imported = await dograh_sync.sync_org(ctx.db, ctx.organization_id)
+    except RuntimeError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e))
+    return {"imported": imported}
 
 
 @router.get("", response_model=Page)

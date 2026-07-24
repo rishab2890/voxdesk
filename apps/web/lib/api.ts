@@ -94,6 +94,7 @@ export const api = {
   call: (id: string) => request<CallDetailT>(`/calls/${id}`),
   simulateCall: (body: { agent_id: string; caller_number?: string; utterances: string[] }) =>
     request<CallDetailT>("/calls/simulate", { method: "POST", body: JSON.stringify(body) }),
+  syncDograh: () => request<{ imported: number }>("/calls/sync", { method: "POST" }),
 
   recordingUrl: async (callId: string): Promise<string> => {
     // <audio> can't send the bearer header, so fetch the audio and hand back a blob URL.
